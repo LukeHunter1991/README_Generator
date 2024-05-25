@@ -41,82 +41,94 @@ function writeToFile(data) {
         email: null
     }
 
-    // Add screenshot data to a variable. data.screenshot will be set to null so that it does not follow the default case in the switch statement.
+    // Add screenshot data to a variable. data.screenshot set to null so that it does not follow the default case in the switch statement.
     const screenshotVar = data.screenshot;
-
-    // Below are written outside of switch statement to ensure that all is written in the correct order.
-    // Will create a new file and trigger specific warning if error in writeFile func
-    // Title, license button, and description written in below function.
-    fs.writeFile('README.md', `# ${data.Title ? data.Title : "README"}\n${data.License != "No license" ? LicensesObj[data.License] : ""} \n\n ${data.Description ? `## Description\n ${data.Description}\n` : "null"}`, (err) => {
-        if (err) { console.error('Failed to create file') }
-    });
-
-    // As above, index loop left of switch statement to ensure correct order.
-    // Loop through indexObj, which only includes categories relevant to index
-
-    for (i in indexObj) {
-        if (indexObj[i]) {
-            fs.appendFile('README.md', `\n- [${i}](#${i.toLowerCase()})\n`, (err) =>
-                err ? console.error(err) : null
-            );
-        }
-    }
-
-    // Set title, description, screenshot and index to null  so that they are not called in the switch statement below
-    data.Title = null;
-    data.Description = null;
-    data.Index = null;
     data.screenshot = null;
+
     // Loop through keys in the data object container the secions and answers provided by the user.
     for (item in data) {
         // Utilised a loop over a static block of text so that empty sections could be skipped when writing to file.
         if (data[item]) {
             switch (item) {
+                case "Title":
+                    // Will create a new file and trigger specific warning if error in writeFile func
+                    // Title, license button, and description written in below function.
+                    let writeTitle = async () => {
+                        fs.writeFile('README.md', `# ${data.Title ? data.Title : "README"}\n${data.License != "No license" ? LicensesObj[data.License] : ""} \n\n ${data.Description ? `## Description\n ${data.Description}\n` : "null"}`, (err) => {
+                            if (err) { console.error('Failed to create file') }
+                        });
+                    }
+                    // Loop through indexObj, which only includes categories relevant to index
+                    let writeIndex = async () => {
+                        for (i in indexObj) {
+                            if (indexObj[i]) {
+                                fs.appendFile('README.md', `\n- [${i}](#${i.toLowerCase()})\n`, (err) =>
+                                    err ? console.error(err) : null
+                                );
+                            }
+                        }
+                    }
+                    writeTitle();
+                    writeIndex();
+                    // Update Description to Null to avoid duplication
+                    data.Description = null;
+                    break
 
                 // Ensures screenshot tot he usage section, user will add the file location only
                 case "Usage":
-                    fs.appendFile('README.md', `## ${item}\n${data[item]}\n\n${screenshotVar ? `![image](${screenshotVar})` : ""} \n`, (err) =>
-                        err ? console.error("Failed to add usage/screenshot") : null
-                    );
+                    let writeUsage = async () => {
+                        await fs.appendFile('README.md', `## ${item}\n${data[item]}\n\n${screenshotVar ? `![image](${screenshotVar})` : ""} \n`, (err) =>
+                            err ? console.error("Failed to add usage/screenshot") : null
+                        );
+                    }
+                    writeUsage();
                     break
                 // Prints license section only if a license was chosen. If the user selects 'No license' the license section is not added to the file.
                 case "License":
-                    if (data.License != "No license") {
-                        fs.appendFile('README.md', `## ${item} \n This software is licensed under the ${data.License} license.\n\n`, (err) =>
-                            err ? console.error("Failed to add License") : null
-                        )
+                    let writeLicense = async () => {
+                        if (data.License != "No license") {
+                            await fs.appendFile('README.md', `## ${item} \n This software is licensed under the ${data.License} license.\n\n`, (err) =>
+                                err ? console.error("Failed to add License") : null
+                            )
+                        };
                     }
-
+                    writeLicense();
                     break
                 // Questions section is added to the file if either one, or both username and email are provided.
                 // Message updates to reflect relevant choice.
                 case "username":
                 case "email":
-                    if (data.email) {
-                        if (data.username) {
-                            fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted on github at https://github.com/${data.username} or via email at ${data.email}\n\n`, (err) =>
+                    let writeContact = async () => {
+                        if (data.email) {
+                            if (data.username) {
+                                await fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted on github at https://github.com/${data.username} or via email at ${data.email}\n\n`, (err) =>
+                                    err ? console.error(err) : null
+                                );
+                            } else {
+                                await fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted on github at https://github.com/${data.username}\n\n`,
+                                    (err) => err ? console.error(err) : null
+                                );
+                            }
+                        } else if (data.username) {
+                            await fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted via email at ${data.email}\n\n`, (err) =>
                                 err ? console.error(err) : null
                             );
-                        } else {
-                            fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted on github at https://github.com/${data.username}\n\n`,
-                                (err) => err ? console.error(err) : null
-                            );
                         }
-                    } else if (data.username) {
-                        fs.appendFile('README.md', `## Questions\n For any questions relating to this software, I can be contacted via email at ${data.email}\n\n`, (err) =>
-                            err ? console.error(err) : null
-                        );
                     }
                     // Updates both variables to null to ensure that this case is only run once.
                     data.username = null
                     data.email = null
+                    writeContact();
                     break
 
                 default:
                     // Writes additional sections to file
-                    fs.appendFile('README.md', `## ${item}\n${data[item]}\n\n`, (err) =>
-                        err ? console.error(err) : null
-                    );
+                    let writeDef = async () => {
+                        await fs.appendFile('README.md', `## ${item}\n${data[item]}\n\n`, (err) =>
+                            err ? console.error(err) : null
+                        );
+                    }
+                    writeDef();
             }
 
         }
